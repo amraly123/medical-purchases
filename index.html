@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة المشتريات والموردين - مشروع علاج الأطباء</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Cairo Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        medical: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                            800: '#0c4a6e',
+                            900: '#0f172a'
+                        }
+                    },
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            body {
+                background-color: white;
+            }
+            .card-shadow {
+                box-shadow: none !important;
+                border: 1px solid #e2e8f0;
+            }
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <div>
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-medical-900 via-medical-800 to-medical-700 text-white shadow-lg sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-white p-2.5 rounded-xl shadow-md flex items-center justify-center text-medical-700">
+                        <i class="fa-solid font-bold fa-hospital-user text-2xl md:text-3xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl md:text-2xl font-bold tracking-tight">مشروع علاج الأطباء والأسر</h1>
+                        <p class="text-xs md:text-sm text-medical-100 font-normal">اتحاد نقابات المهن الطبية - نظام المشتريات ودليل الموردين</p>
+                    </div>
+                </div>
+
+                <!-- Main Navigation Tabs -->
+                <div class="flex items-center gap-2 bg-white/10 p-1.5 rounded-xl border border-white/15 no-print">
+                    <button onclick="switchTab('orders')" id="tab-orders-btn" class="px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-2 bg-white text-medical-800 shadow">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                        <span>قائمة الطلبات</span>
+                    </button>
+                    <button onclick="switchTab('vendors')" id="tab-vendors-btn" class="px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-2 text-white hover:bg-white/10">
+                        <i class="fa-solid fa-store"></i>
+                        <span>دليل الموردين</span>
+                        <span id="vendor-count-badge" class="bg-amber-400 text-slate-900 px-1.5 py-0.2 text-[10px] rounded-full font-black">0</span>
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2 no-print">
+                    <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold px-3 py-2 rounded-lg transition-all flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-file-excel"></i>
+                        <span>تصدير Excel</span>
+                    </button>
+                    <button onclick="window.print()" class="bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold px-3 py-2 rounded-lg backdrop-blur-sm transition-all flex items-center gap-1.5 border border-white/20">
+                        <i class="fa-solid fa-print"></i>
+                        <span>طباعة</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+            
+            <!-- SECTION 1: PURCHASES ORDERS TAB -->
+            <div id="section-orders" class="space-y-6">
+                <!-- Statistics Dashboard -->
+                <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">إجمالي الطلبات</p>
+                            <h3 id="stat-total" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-boxes-packing"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-amber-600 uppercase tracking-wider">طلبات معلقة / جارية</p>
+                            <h3 id="stat-pending" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-emerald-600 uppercase tracking-wider">الطلبات المكتملة</p>
+                            <h3 id="stat-completed" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-medical-600 uppercase tracking-wider">التكلفة التقديرية للمعلق</p>
+                            <h3 id="stat-cost" class="text-xl font-bold text-slate-800 mt-1">0 ج.م</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-coins"></i>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    
+                    <!-- Form Side Bar -->
+                    <div class="lg:col-span-4 no-print">
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 sticky top-24">
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <i class="fa-solid fa-cart-plus text-medical-600"></i>
+                                    <span id="form-title">إضافة طلب شراء جديد</span>
+                                </h2>
+                                <button id="reset-form-btn" onclick="resetForm()" class="text-xs text-slate-400 hover:text-slate-600 hidden">
+                                    <i class="fa-solid fa-xmark"></i> إلغاء التعديل
+                                </button>
+                            </div>
+
+                            <form id="purchase-form" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                                <input type="hidden" id="item-id">
+                                
+                                <!-- Item Name -->
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">اسم المادة / الحاجة المطلوبة <span class="text-red-500">*</span></label>
+                                    <input type="text" id="item-name" required placeholder="مثال: ورق A4، أحبار، منظف أرضيات..." class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:border-medical-500 focus:ring-1 focus:ring-medical-500 transition-colors">
+                                </div>
+
+                                <!-- Category & Requester -->
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-700 mb-1">القسم / التصنيف <span class="text-red-500">*</span></label>
+                                        <select id="item-category" required class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:border-medical-500 focus:ring-1 focus:ring-medical-500 transition-colors bg-white">
+                                            <option value="أدوات مكتبية">أدوات مكتبية</option>
+                                            <option value="أدوات نظافة ومطهرات">أدوات نظافة ومطهرات</option>
+                                            <option value="ضيافة وبوفيه">ضيافة وبوفيه</option>
+                                            <option value="صيانة وأجهزة">صيانة وأجهزة</option>
+                                            <option value="مستلزمات طبية">مستلزمات طبية</option>
+                                            <option value="أخرى">أخرى</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-700 mb-1">اسم الطالب / القسم <span class="text-red-500">*</span></label>
+                                        <input type="text" id="item-requester" required placeholder="مثال: د. أحمد / قسم العلاج" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:border-medical-500 focus:ring-1 focus:ring-medical-500 transition-colors">
+                                    </div>
+                                </div>
+
+                                <!-- Quantity & Dynamic Vendor Select -->
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-700 mb-1">الكمية المطلوبة <span class="text-red-500">*</span></label>
+                                        <input type="text" id="item-quantity" required placeholder="مثال: 5 كرتونة / 10 علب" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:border-medical-500 focus:ring-1 focus:ring-medical-500 transition-colors">
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between items-center mb-1">
+                                            <label class="block text-xs font-bold text-slate-700">المورد المقترح</label>
+                                            <button type="button" onclick="openQuickVendorModal()" class="text-[11px] font-semibold text-medical-600 hover:text-medical-800">
+                                                <i class="fa-solid fa-plus text-[9px]"></i> مورد جديد
+                                            </button>
+                                        </div>
+                                        <select id="item-vendor-select" onchange="toggleCustomVendorInput()" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:border-medical-500 focus:ring-1 focus:ring-medical-500 transition-colors bg-white">
+                                            <!-- Vendors populate dynamically -->
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Custom Supplier Field (Shown if 'OTHER' selected) -->
+                                <div id="custom-vendor-container" class="hidden">
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">اسم مكان الشراء / المورد اليدوي</label>
+                                    <input type="text" id="item-custom-vendor" placeholder="أدخل اسم المحل أو المكان..." class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:border-medical-500 transition-colors">
+                                </div>
+
+                                <!-- Priority & Estimated Cost -->
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-700 mb-1">درجة الأولوية</label>
+                                        <select id="item-priority" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:border-medical-500 focus:ring-1 focus:ring-medical-500 transition-colors bg-white">
+                                            <option value="عادي">عادي</option>
+                                            <option value="متوسط">متوسط</option>
+                                            <option value="عاجل جداً">عاجل جداً 🔥</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-700 mb-1">التكلفة التقديرية (ج.م)</label>
+                                        <input type="number" id="item-cost" min="0" step="0.5" placeholder="0.00" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:border-medical-500 focus:ring-1 focus:ring-medical-500 transition-colors">
+                                    </div>
+                                </div>
+
+                                <!-- Notes -->
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">ملاحظات إضافية</label>
+                                    <textarea id="item-notes" rows="2" placeholder="مواصفات خاصة، تفاصيل إضافية..." class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:border-medical-500 focus:ring-1 focus:ring-medical-500 transition-colors resize-none"></textarea>
+                                </div>
+
+                                <button type="submit" id="submit-btn" class="w-full bg-medical-700 hover:bg-medical-800 text-white font-bold py-2.5 px-4 rounded-xl shadow transition-all duration-200 flex items-center justify-center gap-2 text-sm">
+                                    <i class="fa-solid fa-plus-circle"></i>
+                                    <span>حفظ وتسجيل الطلب</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Table Main Area -->
+                    <div class="lg:col-span-8">
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+                            
+                            <!-- Search & Vendor Filters -->
+                            <div class="space-y-3 mb-5 no-print">
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <!-- Search input -->
+                                    <div class="relative col-span-1 sm:col-span-1">
+                                        <i class="fa-solid fa-magnifying-glass absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                                        <input type="text" id="search-input" oninput="renderOrders()" placeholder="بحث بالاسم أو الطالب..." class="w-full pr-9 pl-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-medical-500">
+                                    </div>
+
+                                    <!-- Category Filter -->
+                                    <div>
+                                        <select id="category-filter" onchange="renderOrders()" class="w-full text-xs font-semibold px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-medical-500 bg-slate-50 text-slate-700">
+                                            <option value="ALL">جميع التصنيفات</option>
+                                            <option value="أدوات مكتبية">أدوات مكتبية</option>
+                                            <option value="أدوات نظافة ومطهرات">أدوات نظافة ومطهرات</option>
+                                            <option value="ضيافة وبوفيه">ضيافة وبوفيه</option>
+                                            <option value="صيانة وأجهزة">صيانة وأجهزة</option>
+                                            <option value="مستلزمات طبية">مستلزمات طبية</option>
+                                            <option value="أخرى">أخرى</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Vendor Filter (Key Requirement) -->
+                                    <div>
+                                        <select id="vendor-filter" onchange="renderOrders()" class="w-full text-xs font-bold px-3 py-2 rounded-xl border border-amber-300 focus:outline-none focus:border-amber-500 bg-amber-50 text-amber-900">
+                                            <!-- Vendor filter options populated dynamically -->
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Vendor Quick Info Banner (When Filtered) -->
+                                <div id="vendor-active-banner" class="hidden bg-amber-500/10 border border-amber-300 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold text-sm">
+                                            <i class="fa-solid fa-store"></i>
+                                        </div>
+                                        <div>
+                                            <span class="text-xs font-bold text-amber-900" id="banner-vendor-name">-</span>
+                                            <p class="text-[11px] text-amber-700" id="banner-vendor-details">-</p>
+                                        </div>
+                                    </div>
+                                    <button onclick="printVendorSheet()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 shadow-sm">
+                                        <i class="fa-solid fa-print"></i>
+                                        <span>طباعة أوردر للمندوب</span>
+                                    </button>
+                                </div>
+
+                                <!-- Status Tabs -->
+                                <div class="flex flex-wrap gap-1.5 border-b border-slate-100 pb-3">
+                                    <button onclick="setStatusFilter('ALL')" id="filter-status-ALL" class="status-tab px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-medical-700 text-white">الكل</button>
+                                    <button onclick="setStatusFilter('معلق')" id="filter-status-معلق" class="status-tab px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-all">معلق 🟡</button>
+                                    <button onclick="setStatusFilter('جاري الشراء')" id="filter-status-جاري الشراء" class="status-tab px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-all">جاري الشراء 🔵</button>
+                                    <button onclick="setStatusFilter('تم الشراء')" id="filter-status-تم الشراء" class="status-tab px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-all">تم الشراء 🟢</button>
+                                    <button onclick="setStatusFilter('ملغي')" id="filter-status-ملغي" class="status-tab px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-all">ملغي 🔴</button>
+                                </div>
+                            </div>
+
+                            <!-- Table -->
+                            <div class="overflow-x-auto custom-scrollbar">
+                                <table class="w-full text-right border-collapse min-w-[700px]">
+                                    <thead>
+                                        <tr class="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-200">
+                                            <th class="p-3">المادة / الحاجة</th>
+                                            <th class="p-3">الطالب والتصنيف</th>
+                                            <th class="p-3">الكمية والمورد</th>
+                                            <th class="p-3">الأولوية والتكلفة</th>
+                                            <th class="p-3">الحالة</th>
+                                            <th class="p-3 text-center no-print">إجراءات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="orders-table-body" class="divide-y divide-slate-100 text-sm">
+                                        <!-- Dynamic Rows -->
+                                    </tbody>
+                                </table>
+
+                                <!-- Empty State -->
+                                <div id="empty-state" class="hidden py-12 text-center">
+                                    <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+                                        <i class="fa-solid fa-inbox"></i>
+                                    </div>
+                                    <h4 class="text-base font-bold text-slate-700">لا توجد طلبات مطابقة للبحث أو الفلترة</h4>
+                                    <p class="text-xs text-slate-400 mt-1">تأكد من إزالة الفلاتر أو سجل طلبات جديدة</p>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- SECTION 2: VENDORS DIRECTORY TAB -->
+            <div id="section-vendors" class="hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    
+                    <!-- Vendor Form Sidebar -->
+                    <div class="lg:col-span-4 no-print">
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 sticky top-24">
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <i class="fa-solid fa-store text-amber-600"></i>
+                                    <span id="vendor-form-title">تسجيل مورد جديد</span>
+                                </h2>
+                                <button id="reset-vendor-form-btn" onclick="resetVendorForm()" class="text-xs text-slate-400 hover:text-slate-600 hidden">
+                                    <i class="fa-solid fa-xmark"></i> إلغاء التعديل
+                                </button>
+                            </div>
+
+                            <form id="vendor-form" onsubmit="handleVendorSubmit(event)" class="space-y-4">
+                                <input type="hidden" id="vendor-id">
+
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">اسم المورد / الشركة / المحل <span class="text-red-500">*</span></label>
+                                    <input type="text" id="vendor-name" required placeholder="مثال: مكتبة الأهرام، الفجالة..." class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-700 mb-1">التخصص الرئيسي</label>
+                                        <select id="vendor-category" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:border-amber-500 bg-white">
+                                            <option value="أدوات مكتبية ومطبوعات">أدوات مكتبية ومطبوعات</option>
+                                            <option value="أدوات نظافة ومطهرات">أدوات نظافة ومطهرات</option>
+                                            <option value="أغذية وبوفيه">أغذية وبوفيه</option>
+                                            <option value="صيانة وأجهزة إلكترونية">صيانة وأجهزة</option>
+                                            <option value="مستلزمات طبية">مستلزمات طبية</option>
+                                            <option value="مورد عام">مورد عام</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-700 mb-1">شخص الاتصال / المسئول</label>
+                                        <input type="text" id="vendor-contact" placeholder="مثال: أ/ محمد هاني" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:border-amber-500">
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-700 mb-1">رقم الهاتف / الموبايل <span class="text-red-500">*</span></label>
+                                        <input type="text" id="vendor-phone" required placeholder="010xxxxxxx" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:border-amber-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-700 mb-1">العنوان / الفرع</label>
+                                        <input type="text" id="vendor-address" placeholder="مثال: الفجالة - وسط البلد" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:border-amber-500">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">ملاحظات / مواعيد العمل</label>
+                                    <textarea id="vendor-notes" rows="2" placeholder="مواعيد العمل، يفضل الشراء نقداً..." class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:border-amber-500 resize-none"></textarea>
+                                </div>
+
+                                <button type="submit" id="vendor-submit-btn" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-4 rounded-xl shadow transition-all duration-200 flex items-center justify-center gap-2 text-sm">
+                                    <i class="fa-solid fa-store"></i>
+                                    <span>حفظ بيانات المورد</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Vendors Directory Grid -->
+                    <div class="lg:col-span-8">
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4 mb-5">
+                                <div>
+                                    <h3 class="text-lg font-bold text-slate-800">دليل الموردين والأماكن المسجلة</h3>
+                                    <p class="text-xs text-slate-500">قائمة دائمة بالموردين لتسهيل ربط طلبات المشتريات بهم وإعطاء بياناتهم للمندوب</p>
+                                </div>
+                                <div class="w-full sm:w-64 relative">
+                                    <i class="fa-solid fa-magnifying-glass absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                                    <input type="text" id="vendor-search-input" oninput="renderVendors()" placeholder="بحث باسم المورد أو الهاتف..." class="w-full pr-8 pl-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-none">
+                                </div>
+                            </div>
+
+                            <div id="vendors-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Dynamic Vendor Cards -->
+                            </div>
+
+                            <div id="vendors-empty-state" class="hidden py-12 text-center">
+                                <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+                                    <i class="fa-solid fa-store-slash"></i>
+                                </div>
+                                <h4 class="text-base font-bold text-slate-700">لا يوجد موردين مسجلين حتى الآن</h4>
+                                <p class="text-xs text-slate-400 mt-1">سجل موردين جدد في الدليل لربطهم بالطلبات والوصول إليهم بسهولة</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Print Dedicated Template (Visible only when printing Vendor Order Sheet) -->
+    <div id="vendor-print-sheet" class="hidden print-only p-8 text-right font-cairo">
+        <div class="border-b-2 border-slate-800 pb-4 mb-6 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-black text-slate-900">مشروع علاج الأطباء والأسر</h1>
+                <h2 class="text-lg font-bold text-slate-700">اتحاد نقابات المهن الطبية - كشف مشتريات للمندوب</h2>
+            </div>
+            <div class="text-left">
+                <p class="text-xs text-slate-500">تاريخ الإصدار: <span id="print-date"></span></p>
+            </div>
+        </div>
+
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 space-y-1">
+            <p class="text-base font-bold text-slate-900">بيانات المورد / مكان الشراء:</p>
+            <p class="text-sm font-semibold text-slate-800">اسم المورد: <span id="print-vendor-name" class="font-bold"></span></p>
+            <p class="text-xs text-slate-600">الهاتف: <span id="print-vendor-phone"></span> | المسؤول: <span id="print-vendor-contact"></span></p>
+            <p class="text-xs text-slate-600">العنوان: <span id="print-vendor-address"></span></p>
+        </div>
+
+        <table class="w-full border-collapse border border-slate-300 text-xs text-right mb-6">
+            <thead>
+                <tr class="bg-slate-200 text-slate-800 font-bold border-b border-slate-300">
+                    <th class="p-2 border border-slate-300">م</th>
+                    <th class="p-2 border border-slate-300">المادة / الحاجة المطلوبة</th>
+                    <th class="p-2 border border-slate-300">الكمية</th>
+                    <th class="p-2 border border-slate-300">القسم الطالب</th>
+                    <th class="p-2 border border-slate-300">الأولوية</th>
+                    <th class="p-2 border border-slate-300">ملاحظات</th>
+                </tr>
+            </thead>
+            <tbody id="print-table-body">
+                <!-- Populated dynamically before print -->
+            </tbody>
+        </table>
+
+        <div class="flex justify-between items-end mt-12 pt-6 border-t border-slate-300 text-xs font-bold text-slate-700">
+            <div>توقيع المسؤول عن المشتريات: ....................</div>
+            <div>استلام المندوب: ....................</div>
+        </div>
+    </div>
+
+    <!-- Modals & Toasts -->
+    <!-- Modal: Quick Add Vendor -->
+    <div id="quick-vendor-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-200 no-print">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-xl transform scale-95 transition-transform duration-200">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+                <h3 class="text-base font-bold text-slate-800"><i class="fa-solid fa-store text-amber-500"></i> إضافة مورد سريع للدليل</h3>
+                <button onclick="closeQuickVendorModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="handleQuickVendorSubmit(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">اسم المورد / المحل <span class="text-red-500">*</span></label>
+                    <input type="text" id="qv-name" required placeholder="مثال: مكتبة الفجالة" class="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">رقم الهاتف <span class="text-red-500">*</span></label>
+                        <input type="text" id="qv-phone" required placeholder="010xxxxxxx" class="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">العنوان / الفرع</label>
+                        <input type="text" id="qv-address" placeholder="الفجالة..." class="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none">
+                    </div>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-xl text-xs">حفظ وإدراج فوراً</button>
+                    <button type="button" onclick="closeQuickVendorModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 rounded-xl text-xs">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-200 no-print">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl transform scale-95 transition-transform duration-200">
+            <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-xl mx-auto mb-4">
+                <i class="fa-solid fa-trash-can"></i>
+            </div>
+            <h3 id="delete-modal-title" class="text-base font-bold text-slate-800 text-center">حذف العنصر؟</h3>
+            <p id="delete-modal-msg" class="text-xs text-slate-500 text-center mt-1">هل أنت تأكد من السجل؟ لا يمكن التراجع عن الإجراء.</p>
+            <div class="flex gap-2 mt-6">
+                <button onclick="confirmDelete()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-xl text-xs transition-colors">حذف</button>
+                <button onclick="closeDeleteModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 rounded-xl text-xs transition-colors">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 left-5 bg-slate-800 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 transform translate-y-10 opacity-0 transition-all duration-300 pointer-events-none z-50 no-print">
+        <i id="toast-icon" class="fa-solid fa-check-circle text-emerald-400 text-base"></i>
+        <span id="toast-message">تمت العملية بنجاح</span>
+    </div>
+
+    <script>
+        const STORAGE_ORDERS_KEY = 'doc_purchases_orders_v2';
+        const STORAGE_VENDORS_KEY = 'doc_purchases_vendors_v2';
+
+        let orders = [];
+        let vendors = [];
+        let currentStatusFilter = 'ALL';
+        let deleteTarget = { type: null, id: null };
+
+        // Default Sample Vendors
+        const defaultVendors = [
+            {
+                id: 'v1',
+                name: 'مكتبة الفجالة الكبرى',
+                category: 'أدوات مكتبية ومطبوعات',
+                contact: 'أ/ سامح حسين',
+                phone: '01012345678',
+                address: 'الفجالة - بالقرب من رمسيس',
+                notes: 'أسعار جملة خاصة بمشروع العلاج'
+            },
+            {
+                id: 'v2',
+                name: 'شركة العالمية للنظافة',
+                category: 'أدوات نظافة ومطهرات',
+                contact: 'م/ خالد عبد الفتاح',
+                phone: '01298765432',
+                address: 'العتبة - شارع الجيش',
+                notes: 'توصيل مجاني للطلبات الكبيرة'
+            },
+            {
+                id: 'v3',
+                name: 'المركز الهندسي للطابعات',
+                category: 'صيانة وأجهزة إلكترونية',
+                contact: 'مهندس/ هاني',
+                phone: '01155443322',
+                address: 'الدقي - الجيزة',
+                notes: 'صيانة أحبار وقطع غيار طابعات'
+            }
+        ];
+
+        // Default Sample Orders
+        const defaultOrders = [
+            {
+                id: '1',
+                name: 'ورق تصوير A4 (80 جرام)',
+                category: 'أدوات مكتبية',
+                requester: 'د. أحمد (قسم الاشتراك)',
+                quantity: '10 كرتونة',
+                vendorId: 'v1',
+                customVendor: '',
+                priority: 'عاجل جداً',
+                cost: 2500,
+                notes: 'ضروري لإعادة طباعة كارنيهات العلاج الجديدة',
+                status: 'معلق',
+                createdAt: new Date().toISOString()
+            },
+            {
+                id: '2',
+                name: 'مطهرات أرضيات وكلور',
+                category: 'أدوات نظافة ومطهرات',
+                requester: 'عم سعيد (الخدمات)',
+                quantity: '5 جالون كلور + 3 ديتول',
+                vendorId: 'v2',
+                customVendor: '',
+                priority: 'متوسط',
+                cost: 750,
+                notes: 'لتطهير صالة استقبال الأطباء بانتظام',
+                status: 'جاري الشراء',
+                createdAt: new Date(Date.now() - 86400000).toISOString()
+            }
+        ];
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            populateVendorDropdowns();
+            renderOrders();
+            renderVendors();
+            updateStats();
+        });
+
+        function loadData() {
+            // Load Vendors
+            const storedVendors = localStorage.getItem(STORAGE_VENDORS_KEY);
+            if (storedVendors) {
+                try { vendors = JSON.parse(storedVendors); } catch(e) { vendors = [...defaultVendors]; }
+            } else {
+                vendors = [...defaultVendors];
+                saveVendors();
+            }
+
+            // Load Orders
+            const storedOrders = localStorage.getItem(STORAGE_ORDERS_KEY);
+            if (storedOrders) {
+                try { orders = JSON.parse(storedOrders); } catch(e) { orders = [...defaultOrders]; }
+            } else {
+                orders = [...defaultOrders];
+                saveOrders();
+            }
+        }
+
+        function saveOrders() { localStorage.setItem(STORAGE_ORDERS_KEY, JSON.stringify(orders)); }
+        function saveVendors() { localStorage.setItem(STORAGE_VENDORS_KEY, JSON.stringify(vendors)); }
+
+        function switchTab(tab) {
+            const ordersSec = document.getElementById('section-orders');
+            const vendorsSec = document.getElementById('section-vendors');
+            const ordersBtn = document.getElementById('tab-orders-btn');
+            const vendorsBtn = document.getElementById('tab-vendors-btn');
+
+            if (tab === 'orders') {
+                ordersSec.classList.remove('hidden');
+                vendorsSec.classList.add('hidden');
+                ordersBtn.className = 'px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-2 bg-white text-medical-800 shadow';
+                vendorsBtn.className = 'px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-2 text-white hover:bg-white/10';
+            } else {
+                ordersSec.classList.add('hidden');
+                vendorsSec.classList.remove('hidden');
+                vendorsBtn.className = 'px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-2 bg-white text-medical-800 shadow';
+                ordersBtn.className = 'px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition-all flex items-center gap-2 text-white hover:bg-white/10';
+            }
+        }
+
+        function populateVendorDropdowns() {
+            const formSelect = document.getElementById('item-vendor-select');
+            const filterSelect = document.getElementById('vendor-filter');
+            const badge = document.getElementById('vendor-count-badge');
+
+            if (badge) badge.textContent = vendors.length;
+
+            // 1. Populate Form Select
+            let formHtml = `<option value="">-- اختر مورد من القائمة --</option>`;
+            vendors.forEach(v => {
+                formHtml += `<option value="${v.id}">${escapeHtml(v.name)} (${escapeHtml(v.category)})</option>`;
+            });
+            formHtml += `<option value="OTHER">✍️ مورد آخر / جهة غير مسجلة</option>`;
+            formSelect.innerHTML = formHtml;
+
+            // 2. Populate Filter Select
+            let filterHtml = `<option value="ALL">🏪 كل الموردين والأماكن</option>`;
+            vendors.forEach(v => {
+                filterHtml += `<option value="${v.id}">${escapeHtml(v.name)}</option>`;
+            });
+            filterHtml += `<option value="OTHER">جهة غير مسجلة يدوية</option>`;
+            filterSelect.innerHTML = filterHtml;
+        }
+
+        function toggleCustomVendorInput() {
+            const select = document.getElementById('item-vendor-select');
+            const container = document.getElementById('custom-vendor-container');
+            if (select.value === 'OTHER') {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+
+            const idInput = document.getElementById('item-id').value;
+            const name = document.getElementById('item-name').value.trim();
+            const category = document.getElementById('item-category').value;
+            const requester = document.getElementById('item-requester').value.trim();
+            const quantity = document.getElementById('item-quantity').value.trim();
+            const vendorSelect = document.getElementById('item-vendor-select').value;
+            const customVendor = document.getElementById('item-custom-vendor').value.trim();
+            const priority = document.getElementById('item-priority').value;
+            const cost = parseFloat(document.getElementById('item-cost').value) || 0;
+            const notes = document.getElementById('item-notes').value.trim();
+
+            if (!name || !requester || !quantity) {
+                showToast('برجاء تعبئة الأماكن المحددة', 'fa-triangle-exclamation text-amber-400');
+                return;
+            }
+
+            if (idInput) {
+                const index = orders.findIndex(o => o.id === idInput);
+                if (index !== -1) {
+                    orders[index] = {
+                        ...orders[index],
+                        name, category, requester, quantity,
+                        vendorId: vendorSelect,
+                        customVendor: vendorSelect === 'OTHER' ? customVendor : '',
+                        priority, cost, notes
+                    };
+                    showToast('تم تحديث طلب الشراء بنجاح');
+                }
+            } else {
+                const newOrder = {
+                    id: Date.now().toString(),
+                    name, category, requester, quantity,
+                    vendorId: vendorSelect,
+                    customVendor: vendorSelect === 'OTHER' ? customVendor : '',
+                    priority, cost, notes,
+                    status: 'معلق',
+                    createdAt: new Date().toISOString()
+                };
+                orders.unshift(newOrder);
+                showToast('تم تسجيل الطلب بنجاح');
+            }
+
+            saveOrders();
+            resetForm();
+            renderOrders();
+            updateStats();
+        }
+
+        function resetForm() {
+            document.getElementById('purchase-form').reset();
+            document.getElementById('item-id').value = '';
+            document.getElementById('custom-vendor-container').classList.add('hidden');
+            document.getElementById('form-title').textContent = 'إضافة طلب شراء جديد';
+            document.getElementById('submit-btn').querySelector('span').textContent = 'حفظ وتسجيل الطلب';
+            document.getElementById('reset-form-btn').classList.add('hidden');
+        }
+
+        function editOrder(id) {
+            const order = orders.find(o => o.id === id);
+            if (!order) return;
+
+            document.getElementById('item-id').value = order.id;
+            document.getElementById('item-name').value = order.name;
+            document.getElementById('item-category').value = order.category;
+            document.getElementById('item-requester').value = order.requester;
+            document.getElementById('item-quantity').value = order.quantity;
+            
+            const vendorSelect = document.getElementById('item-vendor-select');
+            vendorSelect.value = order.vendorId || '';
+            toggleCustomVendorInput();
+            
+            if (order.vendorId === 'OTHER') {
+                document.getElementById('item-custom-vendor').value = order.customVendor || '';
+            }
+
+            document.getElementById('item-priority').value = order.priority;
+            document.getElementById('item-cost').value = order.cost || '';
+            document.getElementById('item-notes').value = order.notes || '';
+
+            document.getElementById('form-title').textContent = 'تعديل طلب الشراء';
+            document.getElementById('submit-btn').querySelector('span').textContent = 'حفظ التعديلات';
+            document.getElementById('reset-form-btn').classList.remove('hidden');
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function updateOrderStatus(id, newStatus) {
+            const order = orders.find(o => o.id === id);
+            if (order) {
+                order.status = newStatus;
+                saveOrders();
+                renderOrders();
+                updateStats();
+                showToast(`تم تغيير الحالة إلى "${newStatus}"`);
+            }
+        }
+
+        function setStatusFilter(status) {
+            currentStatusFilter = status;
+            document.querySelectorAll('.status-tab').forEach(tab => {
+                tab.className = 'status-tab px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-all';
+            });
+            const activeTab = document.getElementById(`filter-status-${status}`);
+            if (activeTab) {
+                activeTab.className = 'status-tab px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-medical-700 text-white';
+            }
+            renderOrders();
+        }
+
+        function renderOrders() {
+            const tbody = document.getElementById('orders-table-body');
+            const emptyState = document.getElementById('empty-state');
+            const searchVal = document.getElementById('search-input').value.toLowerCase().trim();
+            const categoryVal = document.getElementById('category-filter').value;
+            const vendorFilterVal = document.getElementById('vendor-filter').value;
+
+            // Handle Active Vendor Banner Visibility
+            const banner = document.getElementById('vendor-active-banner');
+            if (vendorFilterVal !== 'ALL' && vendorFilterVal !== 'OTHER') {
+                const activeV = vendors.find(v => v.id === vendorFilterVal);
+                if (activeV) {
+                    banner.classList.remove('hidden');
+                    document.getElementById('banner-vendor-name').textContent = activeV.name;
+                    document.getElementById('banner-vendor-details').textContent = `تليفون: ${activeV.phone} | العنوان: ${activeV.address || 'غير محدد'} | المسئول: ${activeV.contact || '-'}`;
+                } else { banner.classList.add('hidden'); }
+            } else {
+                banner.classList.add('hidden');
+            }
+
+            // Filter Logic
+            const filtered = orders.filter(order => {
+                const matchesStatus = (currentStatusFilter === 'ALL') || (order.status === currentStatusFilter);
+                const matchesCategory = (categoryVal === 'ALL') || (order.category === categoryVal);
+                
+                // Vendor Filter Check
+                let matchesVendor = true;
+                if (vendorFilterVal !== 'ALL') {
+                    if (vendorFilterVal === 'OTHER') {
+                        matchesVendor = order.vendorId === 'OTHER' || !order.vendorId;
+                    } else {
+                        matchesVendor = order.vendorId === vendorFilterVal;
+                    }
+                }
+
+                // Search check
+                const vendorObj = vendors.find(v => v.id === order.vendorId);
+                const vendorName = vendorObj ? vendorObj.name : (order.customVendor || '');
+                const matchesSearch = order.name.toLowerCase().includes(searchVal) || 
+                                      order.requester.toLowerCase().includes(searchVal) ||
+                                      vendorName.toLowerCase().includes(searchVal);
+
+                return matchesStatus && matchesCategory && matchesVendor && matchesSearch;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            tbody.innerHTML = filtered.map(order => {
+                let priorityClass = 'bg-slate-100 text-slate-600';
+                if (order.priority === 'عاجل جداً') priorityClass = 'bg-red-50 text-red-600 font-bold border border-red-100';
+                else if (order.priority === 'متوسط') priorityClass = 'bg-amber-50 text-amber-700 font-semibold';
+
+                let statusBadge = 'bg-amber-50 text-amber-700 border-amber-200';
+                if (order.status === 'جاري الشراء') statusBadge = 'bg-blue-50 text-blue-700 border-blue-200';
+                else if (order.status === 'تم الشراء') statusBadge = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                else if (order.status === 'ملغي') statusBadge = 'bg-rose-50 text-rose-700 border-rose-200';
+
+                // Get Vendor Name & Phone Info
+                let vendorDisplay = '<span class="text-slate-400">غير محدد</span>';
+                if (order.vendorId && order.vendorId !== 'OTHER') {
+                    const vObj = vendors.find(v => v.id === order.vendorId);
+                    if (vObj) {
+                        vendorDisplay = `<span class="font-bold text-amber-800"><i class="fa-solid fa-store text-[10px]"></i> ${escapeHtml(vObj.name)}</span>
+                                         <div class="text-[10px] text-slate-400"><i class="fa-solid fa-phone"></i> ${escapeHtml(vObj.phone)}</div>`;
+                    }
+                } else if (order.customVendor) {
+                    vendorDisplay = `<span class="text-slate-700 font-medium"><i class="fa-solid fa-shop text-[10px]"></i> ${escapeHtml(order.customVendor)}</span>`;
+                }
+
+                return `
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="p-3 align-top">
+                            <div class="font-bold text-slate-800 text-sm">${escapeHtml(order.name)}</div>
+                            ${order.notes ? `<div class="text-xs text-slate-400 mt-1"><i class="fa-regular fa-comment-dots"></i> ${escapeHtml(order.notes)}</div>` : ''}
+                        </td>
+                        <td class="p-3 align-top">
+                            <div class="text-xs font-semibold text-slate-700">${escapeHtml(order.requester)}</div>
+                            <span class="inline-block mt-1 text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-600">${escapeHtml(order.category)}</span>
+                        </td>
+                        <td class="p-3 align-top">
+                            <div class="text-xs font-bold text-slate-800">${escapeHtml(order.quantity)}</div>
+                            <div class="mt-1">${vendorDisplay}</div>
+                        </td>
+                        <td class="p-3 align-top">
+                            <span class="inline-block text-[11px] px-2 py-0.5 rounded ${priorityClass}">${order.priority}</span>
+                            <div class="text-xs font-bold text-medical-700 mt-1">${order.cost ? order.cost.toLocaleString() + ' ج.م' : '-'}</div>
+                        </td>
+                        <td class="p-3 align-top">
+                            <select onchange="updateOrderStatus('${order.id}', this.value)" class="text-xs font-bold px-2.5 py-1 rounded-lg border ${statusBadge} focus:outline-none cursor-pointer">
+                                <option value="معلق" ${order.status === 'معلق' ? 'selected' : ''}>🟡 معلق</option>
+                                <option value="جاري الشراء" ${order.status === 'جاري الشراء' ? 'selected' : ''}>🔵 جاري الشراء</option>
+                                <option value="تم الشراء" ${order.status === 'تم الشراء' ? 'selected' : ''}>🟢 تم الشراء</option>
+                                <option value="ملغي" ${order.status === 'ملغي' ? 'selected' : ''}>🔴 ملغي</option>
+                            </select>
+                        </td>
+                        <td class="p-3 align-top text-center no-print">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <button onclick="editOrder('${order.id}')" title="تعديل" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center">
+                                    <i class="fa-solid fa-pen text-xs"></i>
+                                </button>
+                                <button onclick="openDeleteModal('order', '${order.id}')" title="حذف" class="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center">
+                                    <i class="fa-solid fa-trash-can text-xs"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function handleVendorSubmit(e) {
+            e.preventDefault();
+
+            const idInput = document.getElementById('vendor-id').value;
+            const name = document.getElementById('vendor-name').value.trim();
+            const category = document.getElementById('vendor-category').value;
+            const contact = document.getElementById('vendor-contact').value.trim();
+            const phone = document.getElementById('vendor-phone').value.trim();
+            const address = document.getElementById('vendor-address').value.trim();
+            const notes = document.getElementById('vendor-notes').value.trim();
+
+            if (!name || !phone) {
+                showToast('الرجاء إدخال اسم المورد والتليفون', 'fa-triangle-exclamation text-amber-400');
+                return;
+            }
+
+            if (idInput) {
+                const index = vendors.findIndex(v => v.id === idInput);
+                if (index !== -1) {
+                    vendors[index] = { ...vendors[index], name, category, contact, phone, address, notes };
+                    showToast('تم تحديث بيانات المورد بنجاح');
+                }
+            } else {
+                const newVendor = {
+                    id: 'v_' + Date.now(),
+                    name, category, contact, phone, address, notes
+                };
+                vendors.push(newVendor);
+                showToast('تم تسجيل المورد بنجاح في الدليل');
+            }
+
+            saveVendors();
+            resetVendorForm();
+            populateVendorDropdowns();
+            renderVendors();
+            renderOrders();
+        }
+
+        function resetVendorForm() {
+            document.getElementById('vendor-form').reset();
+            document.getElementById('vendor-id').value = '';
+            document.getElementById('vendor-form-title').textContent = 'تسجيل مورد جديد';
+            document.getElementById('vendor-submit-btn').querySelector('span').textContent = 'حفظ بيانات المورد';
+            document.getElementById('reset-vendor-form-btn').classList.add('hidden');
+        }
+
+        function editVendor(id) {
+            const v = vendors.find(item => item.id === id);
+            if (!v) return;
+
+            document.getElementById('vendor-id').value = v.id;
+            document.getElementById('vendor-name').value = v.name;
+            document.getElementById('vendor-category').value = v.category;
+            document.getElementById('vendor-contact').value = v.contact || '';
+            document.getElementById('vendor-phone').value = v.phone;
+            document.getElementById('vendor-address').value = v.address || '';
+            document.getElementById('vendor-notes').value = v.notes || '';
+
+            document.getElementById('vendor-form-title').textContent = 'تعديل بيانات المورد';
+            document.getElementById('vendor-submit-btn').querySelector('span').textContent = 'حفظ التعديلات';
+            document.getElementById('reset-vendor-form-btn').classList.remove('hidden');
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function renderVendors() {
+            const grid = document.getElementById('vendors-grid');
+            const emptyState = document.getElementById('vendors-empty-state');
+            const search = document.getElementById('vendor-search-input').value.toLowerCase().trim();
+
+            const filtered = vendors.filter(v => 
+                v.name.toLowerCase().includes(search) || 
+                v.phone.includes(search) || 
+                (v.contact && v.contact.toLowerCase().includes(search))
+            );
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            grid.innerHTML = filtered.map(v => {
+                // Count orders for this vendor
+                const linkedOrdersCount = orders.filter(o => o.vendorId === v.id && o.status !== 'تم الشراء' && o.status !== 'ملغي').length;
+
+                return `
+                    <div class="border border-slate-200 rounded-2xl p-4 bg-white shadow-sm hover:shadow-md transition-all relative flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-start gap-2 mb-2">
+                                <div>
+                                    <h4 class="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+                                        <i class="fa-solid fa-store text-amber-600"></i>
+                                        ${escapeHtml(v.name)}
+                                    </h4>
+                                    <span class="inline-block text-[10px] px-2 py-0.5 rounded bg-amber-50 text-amber-800 font-semibold mt-1">${escapeHtml(v.category)}</span>
+                                </div>
+                                ${linkedOrdersCount > 0 ? `<span class="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full">${linkedOrdersCount} طلب مطلوب</span>` : ''}
+                            </div>
+
+                            <div class="space-y-1 text-xs text-slate-600 my-3">
+                                <p><i class="fa-solid fa-phone text-slate-400 w-4"></i> ${escapeHtml(v.phone)}</p>
+                                ${v.contact ? `<p><i class="fa-solid fa-user text-slate-400 w-4"></i> المسئول: ${escapeHtml(v.contact)}</p>` : ''}
+                                ${v.address ? `<p><i class="fa-solid fa-location-dot text-slate-400 w-4"></i> ${escapeHtml(v.address)}</p>` : ''}
+                                ${v.notes ? `<p class="text-[11px] text-slate-400 italic mt-1 border-t border-slate-100 pt-1">${escapeHtml(v.notes)}</p>` : ''}
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between border-t border-slate-100 pt-3 mt-2">
+                            <button onclick="filterByVendor('${v.id}')" class="text-xs font-bold text-medical-700 hover:text-medical-900 flex items-center gap-1">
+                                <i class="fa-solid fa-list-check"></i> عرض طلباته
+                            </button>
+                            <div class="flex items-center gap-1">
+                                <button onclick="editVendor('${v.id}')" title="تعديل" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center">
+                                    <i class="fa-solid fa-pen text-xs"></i>
+                                </button>
+                                <button onclick="openDeleteModal('vendor', '${v.id}')" title="حذف" class="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center">
+                                    <i class="fa-solid fa-trash-can text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterByVendor(vendorId) {
+            switchTab('orders');
+            document.getElementById('vendor-filter').value = vendorId;
+            renderOrders();
+        }
+
+        function printVendorSheet() {
+            const vendorFilterVal = document.getElementById('vendor-filter').value;
+            if (vendorFilterVal === 'ALL' || vendorFilterVal === 'OTHER') {
+                showToast('برجاء اختيار مورد محدد لطباعة كشف مشترياته', 'fa-triangle-exclamation text-amber-400');
+                return;
+            }
+
+            const activeVendor = vendors.find(v => v.id === vendorFilterVal);
+            if (!activeVendor) return;
+
+            // Get Pending / In progress orders for this vendor
+            const vendorOrders = orders.filter(o => o.vendorId === activeVendor.id && (o.status === 'معلق' || o.status === 'جاري الشراء'));
+
+            if (vendorOrders.length === 0) {
+                showToast('لا توجد طلبات معلقة لهذا المورد حالياً', 'fa-triangle-exclamation text-amber-400');
+                return;
+            }
+
+            // Fill Print Template
+            document.getElementById('print-date').textContent = new Date().toLocaleDateString('ar-EG');
+            document.getElementById('print-vendor-name').textContent = activeVendor.name;
+            document.getElementById('print-vendor-phone').textContent = activeVendor.phone;
+            document.getElementById('print-vendor-contact').textContent = activeVendor.contact || '-';
+            document.getElementById('print-vendor-address').textContent = activeVendor.address || 'غير محدد';
+
+            const tbody = document.getElementById('print-table-body');
+            tbody.innerHTML = vendorOrders.map((o, idx) => `
+                <tr>
+                    <td class="p-2 border border-slate-300 font-bold">${idx + 1}</td>
+                    <td class="p-2 border border-slate-300 font-bold">${escapeHtml(o.name)}</td>
+                    <td class="p-2 border border-slate-300 font-bold">${escapeHtml(o.quantity)}</td>
+                    <td class="p-2 border border-slate-300">${escapeHtml(o.requester)}</td>
+                    <td class="p-2 border border-slate-300">${escapeHtml(o.priority)}</td>
+                    <td class="p-2 border border-slate-300 text-slate-600">${escapeHtml(o.notes || '-')}</td>
+                </tr>
+            `).join('');
+
+            window.print();
+        }
+
+        function openQuickVendorModal() {
+            const modal = document.getElementById('quick-vendor-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeQuickVendorModal() {
+            const modal = document.getElementById('quick-vendor-modal');
+            modal.classList.add('opacity-0');
+            modal.querySelector('div').classList.add('scale-95');
+            setTimeout(() => { modal.classList.add('hidden'); }, 200);
+        }
+
+        function handleQuickVendorSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('qv-name').value.trim();
+            const phone = document.getElementById('qv-phone').value.trim();
+            const address = document.getElementById('qv-address').value.trim();
+
+            if (!name || !phone) return;
+
+            const newVendor = {
+                id: 'v_' + Date.now(),
+                name,
+                category: 'مورد عام',
+                contact: '',
+                phone,
+                address,
+                notes: ''
+            };
+
+            vendors.push(newVendor);
+            saveVendors();
+            populateVendorDropdowns();
+            renderVendors();
+
+            // Select newly added vendor in purchase form
+            document.getElementById('item-vendor-select').value = newVendor.id;
+            toggleCustomVendorInput();
+
+            closeQuickVendorModal();
+            showToast('تمت إضافة المورد الجديد واختياره فوراً');
+        }
+
+        function openDeleteModal(type, id) {
+            deleteTarget = { type, id };
+            const modal = document.getElementById('delete-modal');
+            
+            if (type === 'vendor') {
+                document.getElementById('delete-modal-title').textContent = 'حذف المورد؟';
+                document.getElementById('delete-modal-msg').textContent = 'هل أنت تأكد من إزالة هذا المورد من الدليل؟ لن تتأثر الطلبات السابقة.';
+            } else {
+                document.getElementById('delete-modal-title').textContent = 'حذف الطلب؟';
+                document.getElementById('delete-modal-msg').textContent = 'هل أنت تأكد من إزالة طلب الشراء؟';
+            }
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeDeleteModal() {
+            const modal = document.getElementById('delete-modal');
+            modal.classList.add('opacity-0');
+            modal.querySelector('div').classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                deleteTarget = { type: null, id: null };
+            }, 200);
+        }
+
+        function confirmDelete() {
+            if (!deleteTarget.id) return;
+
+            if (deleteTarget.type === 'vendor') {
+                vendors = vendors.filter(v => v.id !== deleteTarget.id);
+                saveVendors();
+                populateVendorDropdowns();
+                renderVendors();
+                renderOrders();
+                showToast('تم حذف المورد من الدليل');
+            } else if (deleteTarget.type === 'order') {
+                orders = orders.filter(o => o.id !== deleteTarget.id);
+                saveOrders();
+                renderOrders();
+                updateStats();
+                showToast('تم حذف الطلب بنجاح');
+            }
+
+            closeDeleteModal();
+        }
+
+        function updateStats() {
+            const total = orders.length;
+            const pending = orders.filter(o => o.status === 'معلق' || o.status === 'جاري الشراء').length;
+            const completed = orders.filter(o => o.status === 'تم الشراء').length;
+            const pendingCost = orders
+                .filter(o => o.status === 'معلق' || o.status === 'جاري الشراء')
+                .reduce((sum, o) => sum + (o.cost || 0), 0);
+
+            document.getElementById('stat-total').textContent = total;
+            document.getElementById('stat-pending').textContent = pending;
+            document.getElementById('stat-completed').textContent = completed;
+            document.getElementById('stat-cost').textContent = pendingCost.toLocaleString() + ' ج.م';
+        }
+
+        function exportToExcel() {
+            if (orders.length === 0) {
+                showToast('لا توجد بيانات لتصديرها', 'fa-triangle-exclamation text-amber-400');
+                return;
+            }
+
+            let csvContent = "\uFEFF";
+            csvContent += "اسم المادة,التصنيف,اسم الطالب,الكمية,المورد/المحل,رقم هاتف المورد,الأولوية,التكلفة (ج.م),الحالة,ملاحظات\n";
+
+            orders.forEach(o => {
+                const vObj = vendors.find(v => v.id === o.vendorId);
+                const vendorName = vObj ? vObj.name : (o.customVendor || 'غير محدد');
+                const vendorPhone = vObj ? vObj.phone : '-';
+
+                csvContent += `"${(o.name||'')}","${(o.category||'')}","${(o.requester||'')}","${(o.quantity||'')}","${vendorName}","${vendorPhone}","${o.priority||''}","${o.cost||0}","${o.status||''}","${(o.notes||'')}"\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `طلبات_المشتريات_والموردين_${new Date().toISOString().slice(0, 10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showToast('تم تصدير ملف Mcel بنجاح');
+        }
+
+        function showToast(message, iconClass = 'fa-circle-check text-emerald-400') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMessage.textContent = message;
+            toastIcon.className = `fa-solid ${iconClass} text-base`;
+
+            toast.classList.remove('translate-y-10', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-10', 'opacity-0');
+            }, 3000);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>
