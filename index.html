@@ -1275,5 +1275,33 @@
                 .replace(/'/g, '&#039;');
         }
     </script>
+    <!-- Firebase SDKs المباشرة من المتصفح بدون أي برامج -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  // حط هنا كود firebaseConfig اللي طلعلك من لوحة Firebase
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "medical-purchases.firebaseapp.com",
+    projectId: "medical-purchases",
+    storageBucket: "medical-purchases.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  // تهيئة الفايربيس والداتابيز
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // إتاحة المتغيرات لباقي ملفات السكريبت عندك
+  window.db = db;
+  window.collection = collection;
+  window.addDoc = addDoc;
+  window.getDocs = getDocs;
+  window.onSnapshot = onSnapshot;
+  
+  console.log("🔥 Firebase Connected Successfully!");
+</script>
 </body>
 </html>
